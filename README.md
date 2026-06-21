@@ -15,18 +15,14 @@ A simple game where you can draw mazes and watch an algorithm solve them automat
 
 ## 🚀 Getting Started
 
-### 1. Clone the repo
-```bash
-git clone https://github.com/your-username/maze-solver.git
-cd maze-solver
-```
 
-### 2. Install dependencies
+
+### 1. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Run the game
+### 2. Run the game
 ```bash
 npm start
 ```
