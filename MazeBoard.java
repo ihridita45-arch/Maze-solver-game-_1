@@ -63,29 +63,67 @@ public class MazeBoard extends JFrame implements KeyListener {
         setVisible(true);
     }
 
-    // Detect keyboard keys
+    // Keyboard input
     @Override
     public void keyPressed(KeyEvent e) {
 
+        int newRow = player.getRow();
+        int newCol = player.getCol();
+
+        // Calculate new position
         if (e.getKeyCode() == KeyEvent.VK_UP) {
 
-            player.moveUp();
+            newRow--;
 
         } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
 
-            player.moveDown();
+            newRow++;
 
         } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
 
-            player.moveLeft();
+            newCol--;
 
         } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
 
-            player.moveRight();
+            newCol++;
+
+        } else {
+
+            return;
         }
 
-        // Update maze display
-        mazePanel.repaint();
+        // Check whether the new position is valid
+        if (isValidMove(newRow, newCol)) {
+
+            // Move player only if the path is free
+            player.setPosition(newRow, newCol);
+
+            mazePanel.repaint();
+
+        } else {
+
+            // Warning message
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You cannot move through a wall!",
+                    "Invalid Move",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        }
+    }
+
+    // Validate player movement
+    private boolean isValidMove(int row, int col) {
+
+        // Check maze boundary
+        if (row < 0 || row >= mazePanel.maze.length ||
+                col < 0 || col >= mazePanel.maze[0].length) {
+
+            return false;
+        }
+
+        // 0 = Path, 1 = Wall
+        return mazePanel.maze[row][col] == 0;
     }
 
     @Override
