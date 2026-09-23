@@ -10,10 +10,19 @@ public class MazeBoard extends JFrame implements KeyListener {
     private MazePanel mazePanel;
     private Player player;
 
+    // Week 7 features
+    private JLabel moveLabel;
+    private JLabel timerLabel;
+
+    private int moveCount;
+    private int seconds;
+
+    private Timer gameTimer;
+
     public MazeBoard() {
 
         setTitle("Maze Solver Game");
-        setSize(650, 700);
+        setSize(650, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -34,6 +43,10 @@ public class MazeBoard extends JFrame implements KeyListener {
         // Player starts at row 1, column 1
         player = new Player(1, 1);
 
+        // Initial values
+        moveCount = 0;
+        seconds = 0;
+
         // Maze panel
         mazePanel = new MazePanel();
 
@@ -47,10 +60,22 @@ public class MazeBoard extends JFrame implements KeyListener {
         JLabel wallLabel = new JLabel("# = Wall");
         JLabel pathLabel = new JLabel("Path = Empty Space");
 
+        moveLabel = new JLabel("Moves: 0");
+        timerLabel = new JLabel("Time: 0 sec");
+
         infoPanel.add(startLabel);
         infoPanel.add(goalLabel);
         infoPanel.add(wallLabel);
         infoPanel.add(pathLabel);
+        infoPanel.add(moveLabel);
+        infoPanel.add(timerLabel);
+
+        // Restart button
+        JButton restartButton = new JButton("Restart");
+
+        restartButton.addActionListener(e -> restartGame());
+
+        infoPanel.add(restartButton);
 
         add(title, BorderLayout.NORTH);
         add(mazePanel, BorderLayout.CENTER);
@@ -60,7 +85,12 @@ public class MazeBoard extends JFrame implements KeyListener {
         addKeyListener(this);
         setFocusable(true);
 
+        // Start timer
+        startTimer();
+
         setVisible(true);
+
+        requestFocusInWindow();
     }
 
     // Keyboard input
@@ -98,6 +128,13 @@ public class MazeBoard extends JFrame implements KeyListener {
             // Move player only if the path is free
             player.setPosition(newRow, newCol);
 
+            // Count valid moves
+            moveCount++;
+
+            moveLabel.setText(
+                    "Moves: " + moveCount
+            );
+
             mazePanel.repaint();
 
         } else {
@@ -124,6 +161,50 @@ public class MazeBoard extends JFrame implements KeyListener {
 
         // 0 = Path, 1 = Wall
         return mazePanel.maze[row][col] == 0;
+    }
+
+    // Start game timer
+    private void startTimer() {
+
+        gameTimer = new Timer(
+                1000,
+                e -> {
+
+                    seconds++;
+
+                    timerLabel.setText(
+                            "Time: " + seconds + " sec"
+                    );
+                }
+        );
+
+        gameTimer.start();
+    }
+
+    // Restart game
+    private void restartGame() {
+
+        // Reset player position
+        player.setPosition(1, 1);
+
+        // Reset move counter
+        moveCount = 0;
+
+        moveLabel.setText(
+                "Moves: 0"
+        );
+
+        // Reset timer
+        seconds = 0;
+
+        timerLabel.setText(
+                "Time: 0 sec"
+        );
+
+        mazePanel.repaint();
+
+        // Bring keyboard focus back
+        requestFocusInWindow();
     }
 
     @Override
