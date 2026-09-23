@@ -18,10 +18,8 @@ public class MazeBoard extends JFrame implements KeyListener {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel(
-                "MAZE SOLVER GAME",
-                JLabel.CENTER
-        );
+        // Game title
+        JLabel title = new JLabel("MAZE SOLVER GAME", JLabel.CENTER);
 
         title.setFont(
                 new Font("Arial", Font.BOLD, 24)
@@ -33,38 +31,39 @@ public class MazeBoard extends JFrame implements KeyListener {
                 )
         );
 
-        add(title, BorderLayout.NORTH);
-
         // Player starts at row 1, column 1
         player = new Player(1, 1);
 
+        // Maze panel
         mazePanel = new MazePanel();
 
+        // Bottom information panel
+        JPanel infoPanel = new JPanel();
+
+        infoPanel.setLayout(new FlowLayout());
+
+        JLabel startLabel = new JLabel("S = Start");
+        JLabel goalLabel = new JLabel("G = Goal");
+        JLabel wallLabel = new JLabel("# = Wall");
+        JLabel pathLabel = new JLabel("Path = Empty Space");
+
+        infoPanel.add(startLabel);
+        infoPanel.add(goalLabel);
+        infoPanel.add(wallLabel);
+        infoPanel.add(pathLabel);
+
+        add(title, BorderLayout.NORTH);
         add(mazePanel, BorderLayout.CENTER);
+        add(infoPanel, BorderLayout.SOUTH);
 
-        JLabel instruction = new JLabel(
-                "Use Arrow Keys to Move",
-                JLabel.CENTER
-        );
-
-        instruction.setFont(
-                new Font("Arial", Font.BOLD, 16)
-        );
-
-        instruction.setBorder(
-                BorderFactory.createEmptyBorder(
-                        10, 10, 10, 10
-                )
-        );
-
-        add(instruction, BorderLayout.SOUTH);
-
+        // Keyboard control
         addKeyListener(this);
         setFocusable(true);
 
         setVisible(true);
     }
 
+    // Detect keyboard keys
     @Override
     public void keyPressed(KeyEvent e) {
 
@@ -85,6 +84,7 @@ public class MazeBoard extends JFrame implements KeyListener {
             player.moveRight();
         }
 
+        // Update maze display
         mazePanel.repaint();
     }
 
@@ -96,20 +96,29 @@ public class MazeBoard extends JFrame implements KeyListener {
     public void keyTyped(KeyEvent e) {
     }
 
-
+    // Panel used to display the maze
     class MazePanel extends JPanel {
 
         private final int[][] maze = {
 
             {1,1,1,1,1,1,1,1,1,1},
+
             {1,0,0,0,1,0,0,0,0,1},
+
             {1,0,1,0,1,0,1,1,0,1},
+
             {1,0,1,0,0,0,0,1,0,1},
+
             {1,0,1,1,1,1,0,1,0,1},
+
             {1,0,0,0,0,0,0,1,0,1},
+
             {1,1,1,1,1,0,1,1,0,1},
+
             {1,0,0,0,1,0,0,0,0,1},
+
             {1,0,1,0,0,0,1,1,0,1},
+
             {1,1,1,1,1,1,1,1,1,1}
         };
 
@@ -127,6 +136,7 @@ public class MazeBoard extends JFrame implements KeyListener {
                     int x = col * cellSize;
                     int y = row * cellSize;
 
+                    // Wall
                     if (maze[row][col] == 1) {
 
                         g.fillRect(
@@ -135,8 +145,10 @@ public class MazeBoard extends JFrame implements KeyListener {
                                 cellSize,
                                 cellSize
                         );
+                    }
 
-                    } else {
+                    // Path
+                    else {
 
                         g.drawRect(
                                 x,
@@ -148,7 +160,7 @@ public class MazeBoard extends JFrame implements KeyListener {
                 }
             }
 
-            // Draw Start
+            // Start position
             g.setFont(
                     new Font("Arial", Font.BOLD, 25)
             );
@@ -159,7 +171,7 @@ public class MazeBoard extends JFrame implements KeyListener {
                     90
             );
 
-            // Draw Goal
+            // Goal position
             g.drawString(
                     "G",
                     470,
