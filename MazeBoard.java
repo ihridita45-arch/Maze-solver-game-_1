@@ -4,13 +4,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.List;
 
 public class MazeBoard extends JFrame implements KeyListener {
 
     private MazePanel mazePanel;
     private Player player;
 
-    // Week 7 features
     private JLabel moveLabel;
     private JLabel timerLabel;
 
@@ -18,6 +18,11 @@ public class MazeBoard extends JFrame implements KeyListener {
     private int seconds;
 
     private Timer gameTimer;
+
+    private JButton autoSolveButton;
+
+    private boolean autoSolving;
+    private boolean gameCompleted;
 
     public MazeBoard() {
 
@@ -27,8 +32,14 @@ public class MazeBoard extends JFrame implements KeyListener {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Game title
-        JLabel title = new JLabel("MAZE SOLVER GAME", JLabel.CENTER);
+        // =========================
+        // TITLE
+        // =========================
+
+        JLabel title = new JLabel(
+                "MAZE SOLVER GAME",
+                JLabel.CENTER
+        );
 
         title.setFont(
                 new Font("Arial", Font.BOLD, 24)
@@ -36,56 +47,168 @@ public class MazeBoard extends JFrame implements KeyListener {
 
         title.setBorder(
                 BorderFactory.createEmptyBorder(
-                        15, 10, 15, 10
+                        10, 10, 10, 10
                 )
         );
 
-        // Player starts at row 1, column 1
-        player = new Player(1, 1);
+        // =========================
+        // STATUS PANEL
+        // Move + Time Counter
+        // =========================
 
-        // Initial values
-        moveCount = 0;
-        seconds = 0;
-
-        // Maze panel
-        mazePanel = new MazePanel();
-
-        // Bottom information panel
-        JPanel infoPanel = new JPanel();
-
-        infoPanel.setLayout(new FlowLayout());
-
-        JLabel startLabel = new JLabel("S = Start");
-        JLabel goalLabel = new JLabel("G = Goal");
-        JLabel wallLabel = new JLabel("# = Wall");
-        JLabel pathLabel = new JLabel("Path = Empty Space");
+        JPanel statusPanel = new JPanel(
+                new FlowLayout(
+                        FlowLayout.CENTER,
+                        25,
+                        5
+                )
+        );
 
         moveLabel = new JLabel("Moves: 0");
         timerLabel = new JLabel("Time: 0 sec");
+
+        moveLabel.setFont(
+                new Font("Arial", Font.BOLD, 15)
+        );
+
+        timerLabel.setFont(
+                new Font("Arial", Font.BOLD, 15)
+        );
+
+        statusPanel.add(moveLabel);
+        statusPanel.add(timerLabel);
+
+        // =========================
+        // BUTTON PANEL
+        // =========================
+
+        JPanel buttonPanel = new JPanel(
+                new FlowLayout(
+                        FlowLayout.CENTER,
+                        10,
+                        5
+                )
+        );
+
+        JButton restartButton = new JButton("Restart");
+
+        autoSolveButton = new JButton("Auto Solve");
+
+        JButton aboutButton = new JButton("About");
+
+        restartButton.addActionListener(
+                e -> restartGame()
+        );
+
+        autoSolveButton.addActionListener(
+                e -> startAutoSolve()
+        );
+
+        aboutButton.addActionListener(
+                e -> showAbout()
+        );
+
+        buttonPanel.add(restartButton);
+        buttonPanel.add(autoSolveButton);
+        buttonPanel.add(aboutButton);
+
+        // =========================
+        // TOP PANEL
+        // =========================
+
+        JPanel topPanel = new JPanel(
+                new BorderLayout()
+        );
+
+        topPanel.add(
+                title,
+                BorderLayout.NORTH
+        );
+
+        topPanel.add(
+                statusPanel,
+                BorderLayout.CENTER
+        );
+
+        topPanel.add(
+                buttonPanel,
+                BorderLayout.SOUTH
+        );
+
+        // =========================
+        // INITIALIZE GAME
+        // =========================
+
+        player = new Player(1, 1);
+
+        moveCount = 0;
+        seconds = 0;
+
+        autoSolving = false;
+        gameCompleted = false;
+
+        mazePanel = new MazePanel();
+
+        // =========================
+        // BOTTOM LEGEND
+        // =========================
+
+        JPanel infoPanel = new JPanel(
+                new FlowLayout(
+                        FlowLayout.CENTER,
+                        15,
+                        5
+                )
+        );
+
+        JLabel startLabel =
+                new JLabel("S = Start");
+
+        JLabel goalLabel =
+                new JLabel("G = Goal");
+
+        JLabel wallLabel =
+                new JLabel("# = Wall");
+
+        JLabel pathLabel =
+                new JLabel("Path = Empty Space");
 
         infoPanel.add(startLabel);
         infoPanel.add(goalLabel);
         infoPanel.add(wallLabel);
         infoPanel.add(pathLabel);
-        infoPanel.add(moveLabel);
-        infoPanel.add(timerLabel);
 
-        // Restart button
-        JButton restartButton = new JButton("Restart");
+        // =========================
+        // ADD COMPONENTS
+        // =========================
 
-        restartButton.addActionListener(e -> restartGame());
+        add(
+                topPanel,
+                BorderLayout.NORTH
+        );
 
-        infoPanel.add(restartButton);
+        add(
+                mazePanel,
+                BorderLayout.CENTER
+        );
 
-        add(title, BorderLayout.NORTH);
-        add(mazePanel, BorderLayout.CENTER);
-        add(infoPanel, BorderLayout.SOUTH);
+        add(
+                infoPanel,
+                BorderLayout.SOUTH
+        );
 
-        // Keyboard control
+        // =========================
+        // KEYBOARD
+        // =========================
+
         addKeyListener(this);
+
         setFocusable(true);
 
-        // Start timer
+        // =========================
+        // TIMER
+        // =========================
+
         startTimer();
 
         setVisible(true);
@@ -93,14 +216,20 @@ public class MazeBoard extends JFrame implements KeyListener {
         requestFocusInWindow();
     }
 
-    // Keyboard input
+    // =====================================================
+    // PLAYER MOVEMENT
+    // =====================================================
+
     @Override
     public void keyPressed(KeyEvent e) {
+
+        if (autoSolving || gameCompleted) {
+            return;
+        }
 
         int newRow = player.getRow();
         int newCol = player.getCol();
 
-        // Calculate new position
         if (e.getKeyCode() == KeyEvent.VK_UP) {
 
             newRow--;
@@ -122,13 +251,15 @@ public class MazeBoard extends JFrame implements KeyListener {
             return;
         }
 
-        // Check whether the new position is valid
+        // Check valid movement
         if (isValidMove(newRow, newCol)) {
 
-            // Move player only if the path is free
-            player.setPosition(newRow, newCol);
+            player.setPosition(
+                    newRow,
+                    newCol
+            );
 
-            // Count valid moves
+            // Increase move count
             moveCount++;
 
             moveLabel.setText(
@@ -137,9 +268,10 @@ public class MazeBoard extends JFrame implements KeyListener {
 
             mazePanel.repaint();
 
+            checkGoal();
+
         } else {
 
-            // Warning message
             JOptionPane.showMessageDialog(
                     this,
                     "You cannot move through a wall!",
@@ -149,22 +281,37 @@ public class MazeBoard extends JFrame implements KeyListener {
         }
     }
 
-    // Validate player movement
-    private boolean isValidMove(int row, int col) {
+    // =====================================================
+    // MOVE VALIDATION
+    // =====================================================
 
-        // Check maze boundary
-        if (row < 0 || row >= mazePanel.maze.length ||
-                col < 0 || col >= mazePanel.maze[0].length) {
+    private boolean isValidMove(
+            int row,
+            int col
+    ) {
+
+        if (
+                row < 0 ||
+                row >= mazePanel.maze.length ||
+                col < 0 ||
+                col >= mazePanel.maze[0].length
+        ) {
 
             return false;
         }
 
-        // 0 = Path, 1 = Wall
         return mazePanel.maze[row][col] == 0;
     }
 
-    // Start game timer
+    // =====================================================
+    // TIMER
+    // =====================================================
+
     private void startTimer() {
+
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
 
         gameTimer = new Timer(
                 1000,
@@ -181,13 +328,21 @@ public class MazeBoard extends JFrame implements KeyListener {
         gameTimer.start();
     }
 
-    // Restart game
+    // =====================================================
+    // RESTART GAME
+    // =====================================================
+
     private void restartGame() {
+
+        autoSolving = false;
+        gameCompleted = false;
+
+        autoSolveButton.setEnabled(true);
 
         // Reset player position
         player.setPosition(1, 1);
 
-        // Reset move counter
+        // Reset moves
         moveCount = 0;
 
         moveLabel.setText(
@@ -201,11 +356,193 @@ public class MazeBoard extends JFrame implements KeyListener {
                 "Time: 0 sec"
         );
 
+        // Remove solution path
+        mazePanel.solutionPath = null;
+
+        // Start timer again
+        startTimer();
+
         mazePanel.repaint();
 
-        // Bring keyboard focus back
         requestFocusInWindow();
     }
+
+    // =====================================================
+    // GOAL DETECTION
+    // =====================================================
+
+    private void checkGoal() {
+
+        if (
+                player.getRow() == 8 &&
+                player.getCol() == 8
+        ) {
+
+            gameCompleted = true;
+
+            if (gameTimer != null) {
+                gameTimer.stop();
+            }
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Congratulations!\n"
+                    + "You reached the goal!\n\n"
+                    + "Moves: " + moveCount + "\n"
+                    + "Time: " + seconds + " sec",
+                    "You Win!",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        }
+    }
+
+    // =====================================================
+    // AUTO SOLVER
+    // =====================================================
+
+    private void startAutoSolve() {
+
+        if (autoSolving || gameCompleted) {
+            return;
+        }
+
+        autoSolving = true;
+
+        autoSolveButton.setEnabled(false);
+
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
+
+        AutoSolver solver =
+                new AutoSolver(
+                        mazePanel.maze,
+                        1,
+                        1,
+                        8,
+                        8
+                );
+
+        List<Point> path = solver.solve();
+
+        if (
+                path == null ||
+                path.isEmpty()
+        ) {
+
+            autoSolving = false;
+
+            autoSolveButton.setEnabled(true);
+
+            startTimer();
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No solution path found!",
+                    "Auto Solver",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        mazePanel.solutionPath = path;
+
+        animateSolution(path);
+    }
+
+    // =====================================================
+    // AUTO SOLVER ANIMATION
+    // =====================================================
+
+    private void animateSolution(
+            List<Point> path
+    ) {
+
+        final int[] index = {1};
+
+        Timer solverTimer =
+                new Timer(
+                        300,
+                        null
+                );
+
+        solverTimer.addActionListener(
+                e -> {
+
+                    if (index[0] >= path.size()) {
+
+                        solverTimer.stop();
+
+                        autoSolving = false;
+
+                        gameCompleted = true;
+
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Auto Solve Completed!\n"
+                                + "The goal has been reached.",
+                                "Auto Solver",
+                                JOptionPane.INFORMATION_MESSAGE
+                        );
+
+                        return;
+                    }
+
+                    Point current =
+                            path.get(index[0]);
+
+                    player.setPosition(
+                            current.x,
+                            current.y
+                    );
+
+                    index[0]++;
+
+                    moveCount++;
+
+                    moveLabel.setText(
+                            "Moves: " + moveCount
+                    );
+
+                    mazePanel.repaint();
+                }
+        );
+
+        solverTimer.start();
+    }
+
+    // =====================================================
+    // ABOUT
+    // =====================================================
+
+    private void showAbout() {
+
+        JOptionPane.showMessageDialog(
+                this,
+
+                "Maze Solver Software\n\n"
+                + "A Java Swing based maze solving game.\n\n"
+                + "Features:\n"
+                + "- Player Movement\n"
+                + "- Wall Validation\n"
+                + "- Move Counter\n"
+                + "- Game Timer\n"
+                + "- Restart Option\n"
+                + "- Auto Solver\n"
+                + "- Goal Detection\n"
+                + "- Winning Message\n\n"
+                + "Developed for Software Development I.",
+
+                "About Maze Solver",
+
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+    // =====================================================
+    // KEY LISTENER METHODS
+    // =====================================================
 
     @Override
     public void keyReleased(KeyEvent e) {
@@ -215,7 +552,10 @@ public class MazeBoard extends JFrame implements KeyListener {
     public void keyTyped(KeyEvent e) {
     }
 
-    // Panel used to display the maze
+    // =====================================================
+    // MAZE PANEL
+    // =====================================================
+
     class MazePanel extends JPanel {
 
         private final int[][] maze = {
@@ -243,19 +583,34 @@ public class MazeBoard extends JFrame implements KeyListener {
 
         private final int cellSize = 55;
 
+        private List<Point> solutionPath;
+
         @Override
-        protected void paintComponent(Graphics g) {
+        protected void paintComponent(
+                Graphics g
+        ) {
 
             super.paintComponent(g);
 
-            for (int row = 0; row < maze.length; row++) {
+            // Draw maze
+            for (
+                    int row = 0;
+                    row < maze.length;
+                    row++
+            ) {
 
-                for (int col = 0; col < maze[row].length; col++) {
+                for (
+                        int col = 0;
+                        col < maze[row].length;
+                        col++
+                ) {
 
-                    int x = col * cellSize;
-                    int y = row * cellSize;
+                    int x =
+                            col * cellSize;
 
-                    // Wall
+                    int y =
+                            row * cellSize;
+
                     if (maze[row][col] == 1) {
 
                         g.fillRect(
@@ -264,10 +619,8 @@ public class MazeBoard extends JFrame implements KeyListener {
                                 cellSize,
                                 cellSize
                         );
-                    }
 
-                    // Path
-                    else {
+                    } else {
 
                         g.drawRect(
                                 x,
@@ -279,9 +632,36 @@ public class MazeBoard extends JFrame implements KeyListener {
                 }
             }
 
-            // Start position
+            // Draw solution path
+            if (solutionPath != null) {
+
+                for (
+                        Point point :
+                        solutionPath
+                ) {
+
+                    int x =
+                            point.y * cellSize;
+
+                    int y =
+                            point.x * cellSize;
+
+                    g.drawOval(
+                            x + 20,
+                            y + 20,
+                            15,
+                            15
+                    );
+                }
+            }
+
+            // Start and Goal
             g.setFont(
-                    new Font("Arial", Font.BOLD, 25)
+                    new Font(
+                            "Arial",
+                            Font.BOLD,
+                            25
+                    )
             );
 
             g.drawString(
@@ -290,19 +670,20 @@ public class MazeBoard extends JFrame implements KeyListener {
                     90
             );
 
-            // Goal position
             g.drawString(
                     "G",
                     470,
-                    530
+                    475
             );
 
-            // Draw Player
+            // Draw player
             int playerX =
-                    player.getCol() * cellSize;
+                    player.getCol()
+                    * cellSize;
 
             int playerY =
-                    player.getRow() * cellSize;
+                    player.getRow()
+                    * cellSize;
 
             g.fillOval(
                     playerX + 10,
